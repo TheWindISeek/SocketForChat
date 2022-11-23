@@ -153,6 +153,10 @@ class TabPage extends JPanel implements Runnable, ActionListener {
             JOptionPane.showMessageDialog(this.chatRoomFrame.jFrame, "发送消息不能为空");
             return;
         }
+        if(this.text_sender.getText().length() > 32) {
+            JOptionPane.showMessageDialog(this.chatRoomFrame.jFrame, "发送消息过长");
+            return;
+        }
         this.cout.print(this.chatRoomFrame.name + "  \t" +
                 getCurrentDate() + "\n\t" + this.text_sender.getText() + "\n");
         this.cout.flush();
