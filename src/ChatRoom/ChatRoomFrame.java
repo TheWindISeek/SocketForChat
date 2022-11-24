@@ -20,6 +20,7 @@ public class ChatRoomFrame  {
     //名字 和 等待的端口
     String name = "";
     int waitPort;
+    String serverAddress = "127.0.0.1";
     //框架和面板
     JFrame jFrame = new JFrame();
     private JPanel guide = new JPanel();
@@ -37,6 +38,7 @@ public class ChatRoomFrame  {
     // 所有的socket和SocketServer
     private java.util.List<Socket> socketList = new ArrayList<>();
     private java.util.List<ServerSocket> serverSocketList = new ArrayList<>();
+    private java.util.List<Socket> clientList = new ArrayList<>();
 
     //监听类
     private ChatRoomControl chatRoomControl = new ChatRoomControl(this);
@@ -123,6 +125,9 @@ public class ChatRoomFrame  {
             for (ServerSocket serverSocket : serverSocketList) {
                 serverSocket.close();
             }
+            for(Socket socket: clientList) {
+                socket.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -134,7 +139,15 @@ public class ChatRoomFrame  {
     //开始进行监听
     public void startCommunication() {
         try{
+            //先连接上服务器
+            Socket connectToServer = new Socket(serverAddress,30615);
+            //这个socket用于和服务器进行通信
+            //和服务器建立
+            clientList.add(connectToServer);
+            //新建页面
+            table.addTab("服务器",new Client(this, connectToServer));
             //等待TCP连接建立 一个建立完成后 继续循环
+            System.out.println("成功连接上服务器");
             while (isListenning) {
                 System.out.println(waitPort);
                 ServerSocket serverSocket = new ServerSocket(waitPort);

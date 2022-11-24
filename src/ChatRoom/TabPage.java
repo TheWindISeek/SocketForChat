@@ -1,6 +1,6 @@
 package ChatRoom;
 
-import org.apache.commons.io.file.StandardDeleteOption;
+//import org.apache.commons.io.file.StandardDeleteOption;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,57 +13,62 @@ import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 
 class TabPage extends JPanel implements Runnable, ActionListener {
-    private ChatRoomFrame chatRoomFrame;
+    ChatRoomFrame chatRoomFrame;
 
     JTextArea text_receiver;     //显示对话内容的文本区
     JTextField text_sender;     //输入发送内容的文本行
     JButton[] buttons;         //发送、离线、删除页按钮
-    PrintWriter cout;        //格式化字符输出流
-    Socket socket;          //和当前页相关联的用于聊天的TCP socket对象
     String[] strs = {"发送", "离线", "删除页", "发送文件"}; // 数组
 
-    //接收文件
-    FileTrans fileTrans = new FileTrans();
-    int udpPort;
+    PrintWriter cout;        //格式化字符输出流
+    Socket socket;          //和当前页相关联的用于聊天的TCP socket对象
+    FileTrans fileTrans = new FileTrans();//接收文件
+    int udpPort;        //udp端口
     Semaphore order = new Semaphore(0);
+
 
 
     TabPage(ChatRoomFrame chatRoomFrame,Socket socket)             //为每个socket构造一个tab页
     {
         super(new BorderLayout());//采用边界布局
-        //给显示消息的区域添加了滚动框
-        this.add(new JScrollPane(this.text_receiver = new JTextArea()));//添加了一个滚动框
-        this.text_receiver.setEditable(false);//不允许对值进行任何修改
+        try {
+            //给显示消息的区域添加了滚动框
+            this.add(new JScrollPane(this.text_receiver = new JTextArea()));//添加了一个滚动框
+            this.text_receiver.setEditable(false);//不允许对值进行任何修改
 
-        //以下创建工具栏，输入内容，添加发送等命令按钮
-        JToolBar toolbar = new JToolBar();
-        this.add(toolbar, "South");//把工具栏放在最下面
-        toolbar.add(this.text_sender = new JTextField(16));//长度为16
-        this.text_sender.addActionListener(this);//用当前类对其进行监听
-        //生成三个功能按钮
+            //以下创建工具栏，输入内容，添加发送等命令按钮
+            JToolBar toolbar = new JToolBar();
+            this.add(toolbar, "South");//把工具栏放在最下面
+            toolbar.add(this.text_sender = new JTextField(16));//长度为16
+            this.text_sender.addActionListener(this);//用当前类对其进行监听
+            //生成三个功能按钮
 
-        this.buttons = new JButton[strs.length];
-        for (int i = 0; i < this.buttons.length; i++) {
-            this.buttons[i] = new JButton(strs[i]);
-            toolbar.add(buttons[i]);
-            this.buttons[i].addActionListener(this);
+            this.buttons = new JButton[strs.length];
+            for (int i = 0; i < this.buttons.length; i++) {
+                this.buttons[i] = new JButton(strs[i]);
+                toolbar.add(buttons[i]);
+                this.buttons[i].addActionListener(this);
+            }
+
+            this.buttons[2].setEnabled(false);   //删除页按钮无效
+
+            //绑定到客户端的socket上
+            this.socket = socket;
+            this.chatRoomFrame = chatRoomFrame;
+            this.cout = new PrintWriter(this.socket.getOutputStream());
+            //开一个线程 让其能够同时接受多人消息
+            (new Thread(this)).start();
+            new Thread(fileTrans).start();//接收文件的线程
+        }catch (Exception ex) {
+            ex.printStackTrace();
         }
-
-        this.buttons[2].setEnabled(false);   //删除页按钮无效
-
-        //绑定到客户端的socket上
-        this.socket = socket;
-        this.chatRoomFrame = chatRoomFrame;
-        //开一个线程 让其能够同时接受多人消息
-        (new Thread(this)).start();
-        new Thread(fileTrans).start();//接收文件的线程
     }
 
-    public void run()       //线程运行方法，接收对方信息，将对方发来的字符串添加到文本区
-    {
+    public void run() {   //线程运行方法，接收对方信息，将对方发来的字符串添加到文本区
         BufferedReader bufreader;
         Reader reader;
-        try {   //下句从Socket获得字节输出流，再创建格式化字符输出流，立即flush
+        try {
+            //下句从Socket获得字节输出流，再创建格式化字符输出流，立即flush
             //使用默认的字符集编码 得到对应socket的输出字符流
             this.cout = new PrintWriter(this.socket.getOutputStream(), true);
             //发送自己网名给对方，访问外部类.this.name
@@ -148,7 +153,7 @@ class TabPage extends JPanel implements Runnable, ActionListener {
     }
 
     //发送
-    private void sendMessage() {
+     void sendMessage() {
         if(isMessageInvalid(this.text_sender.getText())) {//没有消息 无法发送
             JOptionPane.showMessageDialog(this.chatRoomFrame.jFrame, "发送消息不能为空");
             return;
@@ -167,18 +172,17 @@ class TabPage extends JPanel implements Runnable, ActionListener {
         this.text_sender.setText("");//重置输入
     }
     //离线
-    private void offLine() {
+    void offLine() {
         this.text_receiver.append("我离线\n");
         //告诉对方我离线了
         this.cout.println(this.chatRoomFrame.name + "离线\n" + " ");
     }
     //删除当前页
-    private void deletePage() {
+    void deletePage() {
         this.chatRoomFrame.table.remove(this);//tab.getSelectedIndex());//删除tab当前页
     }
-
     //传输文件
-    private void transferFile() throws IOException {
+    void transferFile() throws IOException {
         try{
             JFileChooser fileChooser = new JFileChooser("D:\\");//默认在javaProject文件打开
             if(UIManager.getLookAndFeel().isSupportedLookAndFeel()) {
@@ -237,7 +241,7 @@ class TabPage extends JPanel implements Runnable, ActionListener {
         return i;
     }
     //接收文件
-    private void receiveFile() {
+    void receiveFile() {
         System.out.println("接收文件");
     }
 
@@ -504,7 +508,7 @@ class TabPage extends JPanel implements Runnable, ActionListener {
     }
 
     // 以下皆为功能函数 实现小型功能
-    private boolean isMessageInvalid(String msg) {
+    protected boolean isMessageInvalid(String msg) {
         //System.out.println(msg);
         for(int i = 0; i < msg.length(); ++i) {
             if(msg.charAt(i) != ' ') {//如果都是空格 则消息为空 不让发送
@@ -513,7 +517,7 @@ class TabPage extends JPanel implements Runnable, ActionListener {
         }
         return true;
     }
-    private String getCurrentDate() {
+    protected String getCurrentDate() {
         return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
     }
 }
