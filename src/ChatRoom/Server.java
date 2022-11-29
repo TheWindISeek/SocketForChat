@@ -3,6 +3,8 @@ package ChatRoom;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -10,19 +12,27 @@ public class Server implements Runnable{
     // 所有的socket和SocketServer
     private java.util.List<Socket> socketList = new ArrayList<>();
     private java.util.List<ServerSocket> serverSocketList = new ArrayList<>();
-    protected ConnectToClient connectToClient = new ConnectToClient();
+    protected ConnectToClient connectToClient = new ConnectToClient(this);
     //是否监听
     private boolean isListenning = true;
     int waitPort = 31337;
+    //用于和数据库进行连接
+    private Database database;
+    //之前发过来的消息
+    public String preMsg = "";
+
     //不指定等待端口
     public Server() {
-        //用于打开命令行
-        new Thread(this).start();
+        this(31337);
     }
     //指定等待端口
     public Server(int waitPort) {
+        this.database = new Database();
         this.waitPort = waitPort;
         new Thread(this).start();
+    }
+    public Database getDatabase() {
+        return database;
     }
     //应该关闭所有的流 成功返回true 失败返回false
     boolean closeAllStream() {
@@ -41,9 +51,40 @@ public class Server implements Runnable{
         }
         return true;
     }
-
+    //将int类型格式的字符串转换成日期格式的字符串
+    public static String int2Date(int nowTimeInt) {
+        long now = Long.valueOf(nowTimeInt)*1000;
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return  df.format(now);
+    }
+    //将当前的date转换为int
+    public static int data2int() {
+        return new Long(System.currentTimeMillis()/1000).intValue();
+    }
+    //将数据库格式的信息转换成终端格式的字符串
+    private String database2show(String msg) {
+        String result = "";
+        try{
+            String [] line = msg.split("\n");
+            for (String s:line) {
+                String[] col = s.split("\t");
+                for (int i = 0; i < col.length; i++) {
+                    System.out.println(i+"\n"+col[i]+"\n");
+                }
+                //name + time + message
+                result += col[2] + "\t" + int2Date(Integer.parseInt(col[4])) + "\n" + col[3] + "\n";
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
+    public void addPreMsg() {
+        preMsg = database2show(database.selectAll());
+    }
     //开始进行监听
     public void startCommunication() {
+        addPreMsg();
         try{
             ServerSocket serverSocket = new ServerSocket(waitPort);
             //等待TCP连接建立 一个建立完成后 继续循环
@@ -55,6 +96,7 @@ public class Server implements Runnable{
                 serverSocketList.add(serverSocket);
                 //新建一个线程去让这些人访问
                 connectToClient.addNewClient(socket);
+                connectToClient.simpleMessage(socket,preMsg);
             }
         } catch (IOException ex) {
             ex.printStackTrace();

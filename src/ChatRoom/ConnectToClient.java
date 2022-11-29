@@ -11,7 +11,10 @@ public class ConnectToClient implements Runnable{
 
     List<Socket> clients = new ArrayList<>();
     List<ListenClient> listenClients = new ArrayList<>();
-    public ConnectToClient() {
+    Server server;
+
+    public ConnectToClient(Server server) {
+        this.server = server;
         System.out.println("初始化ConnectToClient");
     }
 
@@ -33,7 +36,17 @@ public class ConnectToClient implements Runnable{
             client.sendMessage(msg);
         }
     }
-
+    //向指定的socket发送信息
+    public void simpleMessage(Socket socket,String msg) throws IOException {
+        for (ListenClient client: listenClients) {
+            //向指定的socket发送信息
+            if(client.client == socket) {
+                System.out.println("你已成功发送消息\n"+msg);
+                client.sendMessage(msg);
+                return;
+            }
+        }
+    }
     class ListenClient implements Runnable{
         CleanFileTrans fileTrans = new CleanFileTrans();//文件传输的东西
         Socket client;//用于发送聊天的socket
@@ -41,9 +54,14 @@ public class ConnectToClient implements Runnable{
         int udpPort;//udp发送端口
         String name; //客户机的名字
 
+        String srcIP;
+        String srcPort;
+
         public ListenClient(Socket client) {
             try{
                 this.client = client;
+                srcIP = bytes2IP(client.getInetAddress().getAddress());
+                srcPort = String.valueOf(client.getLocalPort());
                 printSocket = new PrintWriter(client.getOutputStream(),true);
             }catch (Exception ex) {
                 ex.printStackTrace();
@@ -82,11 +100,20 @@ public class ConnectToClient implements Runnable{
                 System.out.println("这是对方发过来的UDP端口号"+line);
                 this.udpPort = Integer.parseInt(line);
 
+                int cnt = 0;
                 //不断的去接收
                 while ((line = bufreader.readLine()) != null && !line.equals(" ")) {//如果此时接收到的消息是null则退出
                     System.out.println(this.name+line+"\n");
                     //读取到消息后 直接广播
                     boardcastMessage(line+"\n");
+                    //模二加
+                    cnt = cnt ^ 1;
+                    if(cnt == 0) {
+                        //接收到客户端的消息 再进行插入操作
+                        server.getDatabase().insert(srcIP, srcPort, name, line.replace('\t', ' ').trim(), Server.data2int());
+                        //直接更新字符串
+                        server.addPreMsg();
+                    }
                 }
                 System.out.println(name+"停止通信");
                 //关闭所有已经打开的流
@@ -338,5 +365,8 @@ public class ConnectToClient implements Runnable{
             ip += ".";
         }
         return ip;
+    }
+    protected String getCurrentDate() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
     }
 }

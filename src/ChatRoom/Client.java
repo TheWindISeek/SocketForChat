@@ -1,6 +1,8 @@
 package ChatRoom;
 
 import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.Socket;
@@ -11,6 +13,42 @@ public class Client extends TabPage {
     //客户端直接继承自TabPage
     Client(ChatRoomFrame chatRoomFrame, Socket socket) {
         super(chatRoomFrame, socket);
+        this.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                //按下enter 就发送数据
+                if(e.getKeyCode() == KeyEvent.VK_UP) {
+                    System.out.println("你按了上键");
+                }
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    sendMessage();
+                    System.out.println("你按下了enter键");
+                }
+            }
+            @Override
+            public void keyPressed(KeyEvent e) {
+                System.out.println(e.getKeyCode());
+                //按下enter 就发送数据
+                if(e.getKeyCode() == KeyEvent.VK_UP) {
+                    System.out.println("你按了上键");
+                }
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    sendMessage();
+                    System.out.println("你按下了enter键");
+                }
+            }
+            @Override
+            public void keyReleased(KeyEvent e) {
+                //按下enter 就发送数据
+                if(e.getKeyCode() == KeyEvent.VK_UP) {
+                    System.out.println("你按了上键");
+                }
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    sendMessage();
+                    System.out.println("你按下了enter键");
+                }
+            }
+        });
     }
 
     //与指定的服务器进行通信
@@ -61,7 +99,7 @@ public class Client extends TabPage {
         }
         //发送数据
         this.cout.print(this.chatRoomFrame.name + "  \t" +
-                getCurrentDate() + "\n\t" + this.text_sender.getText() + "\n");
+                getCurrentDate() + "\n" + this.text_sender.getText() + "\n");
         this.cout.flush();
         this.text_sender.setText("");//重置输入
     }

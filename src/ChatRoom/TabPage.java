@@ -6,6 +6,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +61,41 @@ class TabPage extends JPanel implements Runnable, ActionListener {
             //开一个线程 让其能够同时接受多人消息
             (new Thread(this)).start();
             new Thread(fileTrans).start();//接收文件的线程
+            this.addKeyListener(new KeyListener() {
+                @Override
+                public void keyTyped(KeyEvent e) {
+                    //按下enter 就发送数据
+                    if(e.getKeyCode() == KeyEvent.VK_UP) {
+                        System.out.println("你按了上键");
+                    }
+                    if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        sendMessage();
+                        System.out.println("你按下了enter键");
+                    }
+                }
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    //按下enter 就发送数据
+                    if(e.getKeyCode() == KeyEvent.VK_UP) {
+                        System.out.println("你按了上键");
+                    }
+                    if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        sendMessage();
+                        System.out.println("你按下了enter键");
+                    }
+                }
+                @Override
+                public void keyReleased(KeyEvent e) {
+                    //按下enter 就发送数据
+                    if(e.getKeyCode() == KeyEvent.VK_UP) {
+                        System.out.println("你按了上键");
+                    }
+                    if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        sendMessage();
+                        System.out.println("你按下了enter键");
+                    }
+                }
+            });
         }catch (Exception ex) {
             ex.printStackTrace();
         }
